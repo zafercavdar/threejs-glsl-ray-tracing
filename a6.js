@@ -76,6 +76,8 @@ var raytracerMaterial = new THREE.ShaderMaterial( {
         uniforms: {
            lightPosition: {value: light.position},
            resolution: {value: new THREE.Vector2(window.innerWidth, window.innerHeight)},
+           ambient_light_color: {value: new THREE.Vector3(0.376, 0.376, 0.376)},
+           diffuse_light_color: {value: new THREE.Vector3(1.0, 1.0, 1.0)},
            myFloat1: {value: 0.5},
            myFloat2: {value: 0.5}
         },
@@ -143,6 +145,7 @@ function update() {
   var i2 = 0.5+0.5*Math.cos(Date.now()*0.001*5.0);
   raytracerMaterial.uniforms.myFloat2.value = i2;
   raytracerMaterial.uniforms.myFloat2.needsUpdate = true;
+
   renderer.render(scene, camera);
 }
 

@@ -28,7 +28,8 @@ void main()
 
 uniform vec2 resolution;
 uniform vec3 lightPosition;
-uniform vec3 light_color;
+uniform vec3 ambient_light_color;
+uniform vec3 diffuse_light_color;
 uniform float myFloat1;
 uniform float myFloat2;
 
@@ -144,12 +145,33 @@ vec3 localShade(vec3 P, vec3 N, vec3 I, vec3 surfColor) {
 /// TO DO:
 //  (1) compute and return a normal N.L diffuse shading color;
 //      surfColor is the assigned color of the surface.
+
+    float ka = 0.2;
+    float kd = 0.8;
+    float ks = 0.3;
+    vec3 finalColor = vec3(0, 0, 0);
+    vec3 ambientTerm = ambient_light_color * ka;
+
     vec3 color = vec3(0, 0, 0);
     vec3 L = normalize(lightPosition - P);
     float i = dot(N, L);
     if (i > 0.0){
       color = surfColor * i;
     }
+    vec3 diffuseTerm = color * kd;
+
+    vec3 specularTerm;
+    L = normalize(P - lightPosition);
+    vec3 R = normalize(reflect(L, N));
+    vec3 V = I * -1.0;
+    float rv = dot(R, V);
+    if (rv < 0.0){
+      rv = 0.0;
+    }
+    float n = 10.0;
+    specularTerm = surfColor * ks * pow(rv, n);
+
+    finalColor = ambientTerm + diffuseTerm + specularTerm;
 
 //  (2) now additionally check to see if the object is in shadow by building and casting
 //      a shadow ray.  If the point is in shadow, return black. Otherwise return the diffuse shading.
@@ -157,10 +179,10 @@ vec3 localShade(vec3 P, vec3 N, vec3 I, vec3 surfColor) {
     shadowRay.direction = normalize(lightPosition - P);
     float nearest_t = rayT(shadowRay);
     if (nearest_t < largeT){ // hits another object
-      color = vec3(0, 0, 0);
+      finalColor = vec3(0, 0, 0);
     }
 
-   return color;
+   return finalColor;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -263,7 +285,7 @@ vec3 rayCast(ray myRay)             // return color
     vec3 refractedColor = rayCast2(secondRefractedRay);
 
 // (7) return the sum of the local color and the reflected ray, weighted by kLocal and kSpec
-    return (kLocal*localColor + kSpec *reflectedColor + 0.2 * refractedColor);
+    return (kLocal*localColor + kSpec *reflectedColor + 0.1 * refractedColor);
   }
   return bgColor(myRay);       // return checkeboard texture
 }
@@ -274,7 +296,7 @@ void main()
   // INIT SPHERES
   sphere sphere0;
   sphere0.mtrl.color = vec3(0.5, 1.0, 0.5);
-  sphere0.mtrl.kSpec = 1.0;
+  sphere0.mtrl.kSpec = 0.7;
   sphere0.mtrl.kLocal = 0.3;
   sphere0.radius = 2.0;
   sphere0.position = vec3(0,0,-7.5);
