@@ -95,6 +95,25 @@ float sphere_intersect(ray myRay, sphere sphr) {
   }
 }
 
+float sphere_intersect_t2(ray myRay, sphere sphr) {
+  float a = dot(myRay.direction, myRay.direction);
+  vec3 s0_r0 = myRay.origin - sphr.position;
+  float b = 2.0 * dot(myRay.direction, s0_r0);
+  float c = dot(s0_r0, s0_r0) - (sphr.radius * sphr.radius);
+  float d = sqrt(b*b-4.0*a*c);               // compute the discriminant
+  if (d < 0.0) {                 // no solution to the quadratic equation?
+    return -1.0;                   // then flag as no intersection
+  } else {
+    float t1 = (-b - d)/(2.0*a);   // compute both values of t
+    float t2 = (-b + d)/(2.0*a);
+    float tmin = min(t1,t2);
+    float tmax = max(t1,t2);
+    if (tmax<=0.0+epsilon) return -1.0;
+    if (tmin<=0.0+epsilon) return -1.0;
+    return (tmax);              // return greater positive value
+  }
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 // rayT():  cast a ray, and computes t for closest intersection in the direction of +t
 //          If there is no intersection, it returns  largeT
@@ -222,12 +241,29 @@ vec3 rayCast(ray myRay)             // return color
     reflectedRay.origin = P;
     reflectedRay.direction = normalize(reflect(I, N));
 
+    float refractive_index = 1.4;
+    ray refractedRay;
+    refractedRay.direction = normalize(refract(I, N, 1.0 / refractive_index));
+    refractedRay.origin = P - 0.1 * refractedRay.direction;
+
+    //second refraction
+    float t2 = sphere_intersect_t2(refractedRay, nearestSphere);
+    vec3 Pr = refractedRay.origin + refractedRay.direction * t2;
+    vec3 Nr = normalize(Pr - nearestSphere.position);
+    vec3 Ir = refractedRay.direction;
+
+    ray secondRefractedRay;
+    secondRefractedRay.origin = Pr;
+    secondRefractedRay.direction = normalize(refract(Ir, Nr, refractive_index));
+
+
 // (6) compute the color of the reflected ray;
 //     Normally this would be a recursive call to
     vec3 reflectedColor = rayCast2(reflectedRay);
+    vec3 refractedColor = rayCast2(secondRefractedRay);
 
 // (7) return the sum of the local color and the reflected ray, weighted by kLocal and kSpec
-    return (kLocal*localColor + kSpec*reflectedColor);
+    return (kLocal*localColor + kSpec *reflectedColor + 0.2 * refractedColor);
   }
   return bgColor(myRay);       // return checkeboard texture
 }
@@ -238,8 +274,8 @@ void main()
   // INIT SPHERES
   sphere sphere0;
   sphere0.mtrl.color = vec3(0.5, 1.0, 0.5);
-  sphere0.mtrl.kSpec = 0.2;
-  sphere0.mtrl.kLocal = 1.0;
+  sphere0.mtrl.kSpec = 1.0;
+  sphere0.mtrl.kLocal = 0.3;
   sphere0.radius = 2.0;
   sphere0.position = vec3(0,0,-7.5);
   sphere0.position.x = -1.0 + myFloat1;
